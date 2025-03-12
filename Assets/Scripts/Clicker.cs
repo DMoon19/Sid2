@@ -38,7 +38,6 @@ public class Clicker : MonoBehaviour
     public void AddClicks()
     {
         score+=suma;
-        Debug.Log(score);
         textScore.text = "score: "+score.ToString();
         
         UserModel credentials = new UserModel(); // Se instancia una sola vez
@@ -46,7 +45,6 @@ public class Clicker : MonoBehaviour
         credentials.data.score = score;
         
         string postData = JsonUtility.ToJson(credentials);
-        Debug.Log(postData);
         StartCoroutine("PatchUser", postData);
     }
     IEnumerator PatchUser(string postData)  
@@ -121,7 +119,6 @@ public class Clicker : MonoBehaviour
 
         if (maintext != null) maintext.text = "Se acabó el tiempo!";
 
-        Debug.Log("¡Tiempo agotado! Fin del juego.");
     }
 
     public void ChangeMainText()
