@@ -1,26 +1,25 @@
-using System;
 using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.UI;
 using System.Linq;
-using UnityEngine.PlayerLoop;
-using UnityEngine.Rendering;
 
 public class AuthHandler : MonoBehaviour
 {
     private string url = "https://sid-restapi.onrender.com";
-    [SerializeField]
     private string Token;
     private string Username;
 
+    [SerializeField]
+    TMP_Text[] score = new TMP_Text[3];
+    
     [SerializeField] 
     private TMP_Text _text;    
     [SerializeField]
     GameObject authPanel;
     [SerializeField]
     private GameObject Manager;
+    
     private void Start()
     {
        Token = PlayerPrefs.GetString("token");
@@ -37,8 +36,7 @@ public class AuthHandler : MonoBehaviour
            StartCoroutine("GetProfile");
        }
     }
-
-  
+    
 
     public void Login()
     {
@@ -64,18 +62,14 @@ public class AuthHandler : MonoBehaviour
     }
 
     public void Logout()
-    {   
-        Token = "";
+    {
         Username = "";
-        
+        Token = "";
         authPanel.SetActive(true);
-        Token = GameObject.Find("InputField Username")
-            .GetComponent<TMP_InputField>().text;
-        Username =GameObject.Find("InputField Password")
-            .GetComponent<TMP_InputField>().text;
         _text.text = "Bienvenid@ a Sid";
-        
-        
+        PlayerPrefs.DeleteKey("username");
+        PlayerPrefs.DeleteKey("token");
+        PlayerPrefs.Save(); // Guarda los cambios en disco
     }
    IEnumerator RegisterPost(string postData)
  {
@@ -128,12 +122,12 @@ public class AuthHandler : MonoBehaviour
 
 
              GameObject.Find("PanelAuth").SetActive(false);
-             _text.text = "Bienvenid@ "+Username+" puntua para ser el 1er lugar";
-
+             
 
              PlayerPrefs.SetString("token", response.token);
-             PlayerPrefs.SetString("username", response.usuario.username);  
+             PlayerPrefs.SetString("username", response.usuario.username);
              StartCoroutine("GetUsers");
+             _text.text = "Bienvenid@ "+response.usuario.username+", puntua para ser el 1er lugar";
 
          }
          else
@@ -163,7 +157,6 @@ public class AuthHandler : MonoBehaviour
              string json = www.downloadHandler.text;
              AuthResponse response = JsonUtility.FromJson<AuthResponse>(json);
              GameObject.Find("PanelAuth").SetActive(false);
-             StartCoroutine("GetUsers");
          }
          else
          {
@@ -171,8 +164,15 @@ public class AuthHandler : MonoBehaviour
          }
      }
  }
+ public void GetScoreboard()
+ {
+     StartCoroutine("GetUsers");
+ }
  IEnumerator GetUsers()
  {
+     Token = PlayerPrefs.GetString("token");
+     Username = PlayerPrefs.GetString("username");
+     
      string path = "/api/usuarios";
      UnityWebRequest www = UnityWebRequest.Get(url + path);
      www.SetRequestHeader("x-token", Token);
@@ -192,9 +192,13 @@ public class AuthHandler : MonoBehaviour
              UserModel[] leaderboard = response.usuarios
                  .OrderByDescending(u => u.data.score)
                  .Take(3).ToArray();
-             foreach (var user in response.usuarios)
+             int index = 0;
+             foreach (var user in leaderboard)
              {
-                 Debug.Log(user.username +"|"+user.data.score);
+               
+                 Debug.Log(user.username +" | "+user.data.score);
+                 score[index].text = index+1 + ". " + user.username + "     " + user.data.score;
+                 index++;    
              }
          }
          else
@@ -205,6 +209,7 @@ public class AuthHandler : MonoBehaviour
  }
 }
 
+[System.Serializable]
 public class Credentials
 {
     public string username;
@@ -223,7 +228,7 @@ public class UserModel
     public int _id;
     public string username;
     public bool estado;
-    public DataUser data;
+    public DataUser data = new DataUser();
 }
 [System.Serializable]
 public class UsersList

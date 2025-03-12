@@ -1,43 +1,63 @@
 using System;
 using System.Collections;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.Serialization;
 
 public class Clicker : MonoBehaviour
 {
     private string url = "https://sid-restapi.onrender.com";
-    string Token;
+    private string Token;
     
-    public TMP_Text text;
+    [SerializeField] private TMP_Text textScore;
     public TMP_Text maintext;
     public TMP_Text timerText;
-    public GameObject botonContador; // Referencia al botón
-    private int totalClicks = 0;
-    private float tiempo = 10f;
-    private bool isGameOver = false;
-    private UserModel user; // Crear una sola vez
 
+    public GameObject btonVolver;
+    public GameObject botonContador; // Referencia al botón
+    
+    private bool isGameOver = false;
+    
+    private float tiempo = 10f;
+    
+    private int score = 0;
+    private int suma = 1;
+    
     [SerializeField]
     AuthHandler ath;
 
+    public void Again()
+    {
+        isGameOver = false;
+        tiempo = 10f;
+        score = 0;
+
+    }
     public void AddClicks()
     {
-        totalClicks++;
-        text.text = totalClicks.ToString();
+        score+=suma;
+        Debug.Log(score);
+        textScore.text = "score: "+score.ToString();
+        
         UserModel credentials = new UserModel(); // Se instancia una sola vez
         credentials.username = PlayerPrefs.GetString("username");
-        credentials.data.score = PlayerPrefs.GetInt("score");
+        credentials.data.score = score;
         
         string postData = JsonUtility.ToJson(credentials);
+        Debug.Log(postData);
         StartCoroutine("PatchUser", postData);
     }
-    IEnumerator PatchUser(string postData)
+    IEnumerator PatchUser(string postData)  
     {
+        Token = PlayerPrefs.GetString("token");
+        
         string path = "/api/usuarios";
-        Token = PlayerPrefs.GetString("Token");
-        UnityWebRequest www = UnityWebRequest.Get(url + path);
+        
+        UnityWebRequest www = UnityWebRequest.Put(url + path, postData);
         www.method = "PATCH";
+        www.SetRequestHeader("Content-Type", "application/json");
         www.SetRequestHeader("x-token", Token);
         yield return www.SendWebRequest();
 
@@ -51,11 +71,12 @@ public class Clicker : MonoBehaviour
             {
                 string json = www.downloadHandler.text;
                 UserModel response = JsonUtility.FromJson<UserModel>(json);
-                StartCoroutine("GetUsers");
             }
             else
             {
-                Debug.Log("Token Vencido... redirecionar a Login");
+                string mensaje = "status:"+www.responseCode;
+                mensaje += "\nError: " + www.downloadHandler.text;
+                Debug.Log(mensaje);
             }
         }
     }
@@ -89,15 +110,22 @@ public class Clicker : MonoBehaviour
     {
         isGameOver = true;
         tiempo = 0;
+        timerText.text = tiempo.ToString("F1");
+        textScore.text = "score: "+score.ToString();
 
+        btonVolver.SetActive(true);
+        maintext.GameObject().SetActive(true);
         // Guarda la puntuación sin crear un nuevo objeto en cada frame
-        user.data.score = totalClicks;
-        Debug.Log(user.data.score);
 
         if (botonContador != null) botonContador.SetActive(false); // Desactiva el botón sin GameObject.Find
 
         if (maintext != null) maintext.text = "Se acabó el tiempo!";
 
         Debug.Log("¡Tiempo agotado! Fin del juego.");
+    }
+
+    public void ChangeMainText()
+    {
+        maintext.text = "Bienvenid@ de nuevo";
     }
 }
